@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { API, graphqlOperation } from "aws-amplify";
 import { withAuthenticator } from "aws-amplify-react";
 
-import { createTodo } from "./graphql/mutations";
+import { createTodo, deleteTodo } from "./graphql/mutations";
 import { listTodos } from "./graphql/queries";
 
 function App() {
@@ -27,7 +27,10 @@ function App() {
       return (
         <div key={note.id} className="flex items-center">
           <li className="list pa1 f3">{note.note}</li>
-          <button className="bg-transparent bn f4">
+          <button
+            className="bg-transparent bn f4"
+            onClick={() => deleteNoteHandler(note.id)}
+          >
             <span>&times;</span>
           </button>
         </div>
@@ -50,6 +53,15 @@ function App() {
     updatedNotes.push(newNote);
 
     setNotes({ ...notes, note: "", notes: updatedNotes });
+  };
+
+  const deleteNoteHandler = async noteId => {
+    const input = { id: noteId };
+    const result = await API.graphql(graphqlOperation(deleteTodo, { input }));
+    const deletedNoteId = result.data.deletedTodo.id;
+
+    const updatedNotes = notes.notes.filter(note => note.id !== deletedNoteId);
+    setNotes({ ...notes, notes: updatedNotes });
   };
 
   return (
