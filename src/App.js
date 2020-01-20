@@ -4,6 +4,11 @@ import { withAuthenticator } from "aws-amplify-react";
 
 import { createTodo, deleteTodo, updateTodo } from "./graphql/mutations";
 import { listTodos } from "./graphql/queries";
+import {
+  onCreateTodo,
+  onDeleteTodo,
+  onUpdateTodo
+} from "./graphql/subscriptions";
 
 function App() {
   const [notes, setNotes] = useState({
@@ -16,6 +21,40 @@ function App() {
 
   useEffect(() => {
     fetchNotes();
+    const createNoteListener = API.graphql(
+      graphqlOperation(onCreateTodo)
+    ).subscribe({
+      next: noteData => {
+        const newNote = noteData.value.data.onCreateTodo;
+        // const prevNotes = notes.notes.filter(note => note.id !== newNote.id);
+        // const updatedNotes = [...prevNotes, newNote];
+        // setNotes({ ...notes, notes: updatedNotes });
+
+        // using prevstate
+        setNotes(prevNotes => {
+          const oldNotes = prevNotes.notes.filter(
+            note => note.id !== newNote.id
+          );
+          const updatedNotes = [...oldNotes, newNote];
+          return updatedNotes;
+        });
+      }
+    });
+
+    const deleteNoteListener = API.graphql(
+      graphqlOperation(onDeleteTodo)
+    ).subscribe({
+      next: noteData => {
+        const deletedNote = noteData.value.data.onDeleteTodo;
+        console.log(deletedNote);
+      }
+    });
+
+    // clean-up componentWillUnmount
+    return () => {
+      createNoteListener.unsubscribre();
+      deleteNoteListener.unsubscribre();
+    };
   }, []);
 
   const fetchNotes = async () => {
@@ -57,13 +96,15 @@ function App() {
       const note = noteElRef.current.value;
       const input = { note };
 
-      const result = await API.graphql(graphqlOperation(createTodo, { input }));
-      const newNote = result.data.createTodo;
+      await API.graphql(graphqlOperation(createTodo, { input }));
+      // const result = await API.graphql(graphqlOperation(createTodo, { input }));
+      // const newNote = result.data.createTodo;
 
-      const updatedNotes = notes.notes;
-      updatedNotes.push(newNote);
+      // const updatedNotes = notes.notes;
+      // updatedNotes.push(newNote);
 
-      setNotes({ ...notes, note: "", notes: updatedNotes });
+      // setNotes({ ...notes, note: "", notes: updatedNotes });
+      setNotes({ ...notes, note: "" });
     }
   };
 
